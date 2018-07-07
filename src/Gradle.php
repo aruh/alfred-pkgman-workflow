@@ -20,18 +20,31 @@ class Gradle extends Repo
         $this->pkgs = $this->cache->get_query_json(
             $this->id,
             $query,
-            "https://api.bintray.com/search/packages/maven?q=*{$query}*"
-        )->response->docs;
-
+            "https://api.bintray.com/search/packages?name={$query}"
+        );
+        
         foreach ($this->pkgs as $pkg) {
             // make params
-            $title = "{$pkg->a} (v{$pkg->latestVersion})";
-            $url = "{$this->url}/{$pkg->id}/view";
-            $details = "GroupId: {$pkg->id}";
+            $title = "{$pkg->name} (v{$pkg->latest_version})";
+
+            $groupId;
+            if (count($pkg->system_ids) > 0) {
+                $groupId = $pkg->system_ids[0];
+            }
+
+            $url = "";
+            $details = "";
+            if ($groupId !== null) {
+                $url = "{$this->url}/{$groupId}";
+                $details = "GroupId: {$groupId}";
+            } else {
+                $url = "{$this->url}/{$pkg->name}";
+                $details = "No GroupId found for package.";
+            }
 
             $this->cache->w->result(
-                $pkg->a,
-                $this->makeArg($pkg->id, $url, "{$pkg->id}:{$pkg->latestVersion}"),
+                $pkg->name,
+                $this->makeArg($pkg->id, $url, $groupId),
                 $title,
                 $details,
                 "icon-cache/{$this->id}.png"
